@@ -1,0 +1,2 @@
+FLASK_APP=Api
+FLASK_DEBUG=True
