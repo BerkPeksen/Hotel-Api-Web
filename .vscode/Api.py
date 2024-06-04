@@ -257,5 +257,35 @@ def delete_hotel_by_name():
 
     return jsonify({'message': 'Hotel deleted successfully'}), 200
 
+@app.route('/api/hotels/update_hotel', methods=['PUT'])
+def upgrade_room():
+    hotel_name = request.json.get('hotel_name')
+    new_room_count = request.json.get('new_room_count')
+    new_people_count = request.json.get('new_people_count')
+
+    if not hotel_name or new_room_count is None or new_people_count is None:
+        return jsonify({'error': 'Please provide hotel_name, new_room_count, and new_people_count'}), 400
+
+    with connection.cursor() as cursor:
+        # Get the hotel_id for the given hotel_name
+        cursor.execute("SELECT hotel_id FROM Hotels WHERE name = %s", (hotel_name,))
+        result = cursor.fetchone()
+
+        if result is None:
+            return jsonify({'error': 'Hotel not found'}), 404
+
+        hotel_id = result[0]
+
+        # Update the RoomAvailability table
+        cursor.execute("""
+            UPDATE RoomAvailability
+            SET available_night_count = %s, available_people_count = %s
+            WHERE hotel_id = %s
+        """, (new_room_count, new_people_count, hotel_id))
+
+    connection.commit()
+
+    return jsonify({'message': 'Room and people count updated successfully'}), 200
+
 if __name__ == '__main__':
     app.run(debug=True)
