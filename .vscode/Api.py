@@ -31,7 +31,13 @@ def add_data():
 @app.route('/api/hotels', methods=['GET'])
 def get_hotels():
     with connection.cursor() as cursor:
-        cursor.execute('SELECT * FROM Hotels;')
+        query = """
+        SELECT h.hotel_id, h.name, h.address, h.phone, h.email, h.overview,
+               ra.price_per_night, ra.available_people_count, ra.available_night_count, ra.room_type
+        FROM Hotels h
+        JOIN RoomAvailability ra ON h.hotel_id = ra.hotel_id;
+        """
+        cursor.execute(query)
         hotels = cursor.fetchall()
 
     hotels_list = []
@@ -42,7 +48,11 @@ def get_hotels():
             'address': hotel[2],
             'phone': hotel[3],
             'email': hotel[4],
-            'overview': hotel[5]
+            'overview': hotel[5],
+            'price_per_night': hotel[6],
+            'available_people_count': hotel[7],
+            'available_night_count': hotel[8],
+            'room_type': hotel[9]
         }
         hotels_list.append(hotel_dict)
 
