@@ -2,10 +2,15 @@ import os
 import psycopg2
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request, render_template
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+
 
 load_dotenv()
 
 app = Flask(__name__)
+app.config['JWT_SECRET_KEY'] = 'your_secret_key'
+
+jwt = JWTManager(app)
 url = os.getenv("DATABASE_URL")
 connection = psycopg2.connect(url)
 
@@ -13,20 +18,17 @@ connection = psycopg2.connect(url)
 def index():
     return render_template('index.html')
 
-@app.route('/api/data', methods=['GET'])
-def get_data():
-    data = {
-        'message': 'Hello, World!',
-        'items': [1, 2, 3, 4, 5]
-    }
-    return jsonify(data)
+@app.route('/api/login', methods=['POST'])
+def login():
+    username = request.json.get('username')
+    password = request.json.get('password')
 
-@app.route('/api/data', methods=['POST'])
-def add_data():
-    new_item = request.json.get('item')
-    # Process the new item here (e.g., save to a database)
-    return jsonify({'message': 'Item added', 'item': new_item}), 201
-
+    # Validate username and password (this is a simple example, adapt it to your needs)
+    if username == 'admin' and password == 'password':  # Change this to use your user validation logic
+        access_token = create_access_token(identity=username)
+        return jsonify(access_token=access_token), 200
+    else:
+        return jsonify({'error': 'Invalid credentials'}), 401
 
 @app.route('/api/hotels', methods=['GET'])
 def get_hotels():
@@ -203,6 +205,7 @@ def get_hotel_details_by_name():
     return jsonify(hotel_details)
 
 @app.route('/api/hotels/insert_hotel', methods=['POST'])
+@jwt_required()
 def add_hotel():
     data = request.json
 
@@ -235,6 +238,7 @@ def add_hotel():
     return jsonify({'message': 'Hotel added successfully'}), 201
 
 @app.route('/api/hotels/delete_hotel', methods=['DELETE'])
+@jwt_required()
 def delete_hotel_by_name():
     hotel_name = request.args.get('hotel_name')
 
@@ -268,6 +272,7 @@ def delete_hotel_by_name():
     return jsonify({'message': 'Hotel deleted successfully'}), 200
 
 @app.route('/api/hotels/update_hotel', methods=['PUT'])
+@jwt_required()
 def upgrade_room():
     hotel_name = request.json.get('hotel_name')
     new_room_count = request.json.get('new_room_count')
