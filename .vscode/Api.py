@@ -171,6 +171,62 @@ def get_hotels_by_available_people_count():
 
     return jsonify(hotels_list)
 
+
+@app.route('/api/hotels/search', methods=['GET'])
+def search_hotels():
+    min_price = request.args.get('min_price', type=float)
+    max_price = request.args.get('max_price', type=float)
+    min_nights = request.args.get('min_nights', type=int)
+    min_people = request.args.get('min_people', type=int)
+
+    query_conditions = []
+    query_params = []
+
+    if min_price is not None:
+        query_conditions.append("ra.price_per_night >= %s")
+        query_params.append(min_price)
+    if max_price is not None:
+        query_conditions.append("ra.price_per_night <= %s")
+        query_params.append(max_price)
+    if min_nights is not None:
+        query_conditions.append("ra.available_night_count >= %s")
+        query_params.append(min_nights)
+    if min_people is not None:
+        query_conditions.append("ra.available_people_count >= %s")
+        query_params.append(min_people)
+
+    if not query_conditions:
+        return jsonify({'error': 'Please provide at least one query parameter'}), 400
+
+    query = """
+    SELECT DISTINCT h.hotel_id, h.name, h.address, h.phone, h.email, h.overview, ra.price_per_night, ra.available_night_count, ra.available_people_count, ra.room_type
+    FROM Hotels h
+    JOIN RoomAvailability ra ON h.hotel_id = ra.hotel_id
+    WHERE {}
+    """.format(" AND ".join(query_conditions))
+
+    with connection.cursor() as cursor:
+        cursor.execute(query, tuple(query_params))
+        results = cursor.fetchall()
+
+    hotels_list = []
+    for result in results:
+        hotel_dict = {
+            'hotel_id': result[0],
+            'name': result[1],
+            'address': result[2],
+            'phone': result[3],
+            'email': result[4],
+            'overview': result[5],
+            'price_per_night': result[6],
+            'available_night_count': result[7],
+            'available_people_count': result[8],
+            'room_type': result[9]
+        }
+        hotels_list.append(hotel_dict)
+
+    return jsonify(hotels_list)
+
 @app.route('/api/hotels/details', methods=['GET'])
 def get_hotel_details_by_name():
     hotel_name = request.args.get('hotel_name')
