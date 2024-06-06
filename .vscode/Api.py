@@ -14,9 +14,6 @@ jwt = JWTManager(app)
 url = os.getenv("DATABASE_URL")
 connection = psycopg2.connect(url)
 
-@app.route('/')
-def index():
-    return render_template('index.html')
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -265,7 +262,8 @@ def get_hotel_details_by_name():
 def add_hotel():
     data = request.json
 
-    if not all(key in data for key in ['name', 'address', 'phone', 'email', 'overview', 'latitude', 'longitude', 'description', 'amenities', 'policies']):
+    required_fields = ['name', 'address', 'phone', 'email', 'overview', 'latitude', 'longitude', 'description', 'amenities', 'policies', 'available_night_count', 'available_people_count', 'price_per_night', 'room_type']
+    if not all(key in data for key in required_fields):
         return jsonify({'error': 'Missing required fields'}), 400
 
     with connection.cursor() as cursor:
@@ -288,6 +286,12 @@ def add_hotel():
         INSERT INTO HotelDetails (hotel_id, description, amenities, policies)
         VALUES (%s, %s, %s, %s)
         """, (hotel_id, data['description'], data['amenities'], data['policies']))
+
+        # Insert into RoomAvailability table
+        cursor.execute("""
+        INSERT INTO RoomAvailability (hotel_id, available_night_count, available_people_count, price_per_night, room_type)
+        VALUES (%s, %s, %s, %s, %s)
+        """, (hotel_id, data['available_night_count'], data['available_people_count'], data['price_per_night'], data['room_type']))
 
     connection.commit()
 
