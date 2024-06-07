@@ -277,6 +277,25 @@ def get_hotel_details_by_name():
 
     return jsonify(hotel_details)
 
+@app.route('/api/hotels/coordinates', methods=['GET'])
+def get_hotel_coordinates():
+    hotel_name = request.args.get('hotel_name')
+
+    if not hotel_name:
+        return jsonify({'error': 'Please provide hotel_name parameter'}), 400
+
+    with connection.cursor() as cursor:
+        # Get the coordinates for the given hotel_name
+        cursor.execute("SELECT latitude, longitude FROM HotelCoordinates WHERE hotel_id = (SELECT hotel_id FROM Hotels WHERE name = %s)", (hotel_name,))
+        result = cursor.fetchone()
+
+        if result is None:
+            return jsonify({'error': 'Hotel not found'}), 404
+
+        latitude, longitude = result
+
+    return jsonify({'latitude': latitude, 'longitude': longitude}), 200
+
 @app.route('/api/hotels/insert_hotel', methods=['POST'])
 @jwt_required()
 def add_hotel():
