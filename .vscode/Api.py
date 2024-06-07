@@ -15,7 +15,7 @@ url = os.getenv("DATABASE_URL")
 connection = psycopg2.connect(url)
 
 
-@app.route('/api/login', methods=['POST'])
+@app.route('/api/admin/login', methods=['POST'])
 def login():
     username = request.json.get('username')
     password = request.json.get('password')
@@ -26,6 +26,26 @@ def login():
         return jsonify(access_token=access_token), 200
     else:
         return jsonify({'error': 'Invalid credentials'}), 401
+    
+@app.route('/api/user/login', methods=['POST'])
+def user_login():
+    data = request.json
+
+    if not all(key in data for key in ['username', 'password']):
+        return jsonify({'error': 'Missing username or password'}), 400
+
+    username = data['username']
+    password = data['password']
+
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT * FROM users WHERE username = %s AND password = %s", (username, password))
+        user = cursor.fetchone()
+
+        if user is None:
+            return jsonify({'error': 'Invalid username or password'}), 401
+
+    return jsonify({'message': 'Login successful'}), 200
+    
 
 @app.route('/api/hotels', methods=['GET'])
 def get_hotels():
@@ -361,6 +381,40 @@ def upgrade_room():
     connection.commit()
 
     return jsonify({'message': 'Room and people count updated successfully'}), 200
+
+@app.route('/api/hotels/book_hotel', methods=['PUT'])
+def book_hotel():
+    hotel_name = request.json.get('hotel_name')
+    night_count = request.json.get('night_count')
+    people_count = request.json.get('people_count')
+
+    if not hotel_name or night_count is None or people_count is None:
+        return jsonify({'error': 'Please provide hotel_name, night_count, and people_count'}), 400
+
+    with connection.cursor() as cursor:
+        # Get the hotel_id for the given hotel_name
+        cursor.execute("SELECT hotel_id, available_night_count, available_people_count FROM Hotels WHERE name = %s", (hotel_name,))
+        result = cursor.fetchone()
+
+        if result is None:
+            return jsonify({'error': 'Hotel not found'}), 404
+
+        hotel_id, available_night_count, available_people_count = result
+
+        if night_count > available_night_count or people_count > available_people_count:
+            return jsonify({'error': 'Not enough available nights or people count'}), 400
+
+        # Update the RoomAvailability table
+        cursor.execute("""
+            UPDATE RoomAvailability
+            SET available_night_count = available_night_count - %s, available_people_count = available_people_count - %s
+            WHERE hotel_id = %s
+        """, (night_count, people_count, hotel_id))
+
+    connection.commit()
+
+    return jsonify({'message': 'Hotel booked successfully'}), 200
+
 
 if __name__ == '__main__':
     app.run(debug=True)

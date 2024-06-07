@@ -15,7 +15,9 @@ const App = () => {
   const [searchType, setSearchType] = useState(null);
   const [token, setToken] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loginData, setLoginData] = useState({ username: '', password: '' });
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  const [adminLoginData, setAdminLoginData] = useState({ username: '', password: '' });
+  const [userLoginData, setUserLoginData] = useState({ username: '', password: '' });
   const [hotelData, setHotelData] = useState({
     name: '',
     address: '',
@@ -108,11 +110,22 @@ const App = () => {
     }
   };
 
-  const handleLogin = async () => {
+  const handleAdminLogin = async () => {
     try {
-      const response = await axios.post('/api/login', loginData);
+      const response = await axios.post('/api/admin/login', adminLoginData);
       setToken(response.data.access_token);
       setIsLoggedIn(true);
+    } catch (error) {
+      console.error('Error logging in', error);
+    }
+  };
+
+  const handleUserLogin = async () => {
+    try {
+      const response = await axios.post('/api/user/login', userLoginData);
+      if (response.data.message === 'Login successful') {
+        setIsUserLoggedIn(true);
+      }
     } catch (error) {
       console.error('Error logging in', error);
     }
@@ -158,26 +171,53 @@ const App = () => {
     }
   };
 
+  const applyDiscount = (price) => {
+    return price - price * 0.1;
+  };
+
   return (
     <div className="App">
       <h1>Hotel Search</h1>
 
-      {!isLoggedIn ? (
-        <div className="login-section">
-          <h2>Login</h2>
+      {!isUserLoggedIn ? (
+        <div className="user-login-section">
+          <h2>User Login</h2>
           <input
             type="text"
             placeholder="Username"
-            value={loginData.username}
-            onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
+            value={userLoginData.username}
+            onChange={(e) => setUserLoginData({ ...userLoginData, username: e.target.value })}
+          />
+          <input
+            type="text"
+            placeholder="Password"
+            value={userLoginData.password}
+            onChange={(e) => setUserLoginData({ ...userLoginData, password: e.target.value })}
+          />
+          <button onClick={handleUserLogin}>User Login</button>
+        </div>
+      ) : (
+        <div>
+          <h2>Welcome, User</h2>
+        </div>
+      )}
+
+      {!isLoggedIn ? (
+        <div className="admin-login-section">
+          <h2>Admin Login</h2>
+          <input
+            type="text"
+            placeholder="Username"
+            value={adminLoginData.username}
+            onChange={(e) => setAdminLoginData({ ...adminLoginData, username: e.target.value })}
           />
           <input
             type="password"
             placeholder="Password"
-            value={loginData.password}
-            onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+            value={adminLoginData.password}
+            onChange={(e) => setAdminLoginData({ ...adminLoginData, password: e.target.value })}
           />
-          <button onClick={handleLogin}>Login</button>
+          <button onClick={handleAdminLogin}>Admin Login</button>
         </div>
       ) : (
         <>
@@ -307,105 +347,106 @@ const App = () => {
       )}
 
       <div className="search-section">
-        <h2>Search by Available Nights</h2>
-        <input
-          type="number"
-          placeholder="Min Nights"
-          value={minNights}
-          onChange={(e) => setMinNights(e.target.value)}
-        />
-        <button onClick={() => handleButtonClick(fetchHotelsByAvailableNights)}>
-          {searchType === 'available_nights' ? 'Hide' : 'Show'} Hotels by Available Nights
-        </button>
-      </div>
-
-      <div className="search-section">
-        <h2>Search by Available People Count</h2>
-        <input
-          type="number"
-          placeholder="Min People"
-          value={minPeople}
-          onChange={(e) => setMinPeople(e.target.value)}
-        />
-        <button onClick={() => handleButtonClick(fetchHotelsByAvailablePeopleCount)}>
-          {searchType === 'available_people_count' ? 'Hide' : 'Show'} Hotels by Available People Count
-        </button>
-      </div>
-
-      <div className="search-section">
-        <h2>Search by Price Range</h2>
-        <input
-          type="number"
-          placeholder="Min Price"
-          value={priceMin}
-          onChange={(e) => setPriceMin(e.target.value)}
-        />
-        <input
-          type="number"
-          placeholder="Max Price"
-          value={priceMax}
-          onChange={(e) => setPriceMax(e.target.value)}
-        />
-        <button onClick={() => handleButtonClick(fetchHotelsByPriceRange)}>
-          {searchType === 'price_range' ? 'Hide' : 'Show'} Hotels by Price Range
-        </button>
-      </div>
-
-      <div className="search-section">
-        <h2>Search by Combined Parameters</h2>
-        <input
-          type="number"
-          placeholder="Min Price"
-          value={minPrice}
-          onChange={(e) => setMinPrice(e.target.value)}
-        />
-        <input
-          type="number"
-          placeholder="Max Price"
-          value={maxPrice}
-          onChange={(e) => setMaxPrice(e.target.value)}
-        />
-        <input
-          type="number"
-          placeholder="Min Nights"
-          value={nightsMin}
-          onChange={(e) => setNightsMin(e.target.value)}
-        />
-        <input
-          type="number"
-          placeholder="Min People"
-          value={peopleMin}
-          onChange={(e) => setPeopleMin(e.target.value)}
-        />
-        <button onClick={() => handleButtonClick(fetchHotelsByCombinedSearch)}>
-          {searchType === 'combined_search' ? 'Hide' : 'Show'} Hotels by Combined Parameters
-        </button>
-      </div>
-
-      {searchType && (
-        <div className="results-section">
-          <h2>Hotels</h2>
-          {hotels.length > 0 ? (
-            <ul>
-              {hotels.map((hotel) => (
-                <li key={hotel.hotel_id}>
-                  <h3>{hotel.name}</h3>
-                  <p>Address: {hotel.address}</p>
-                  <p>Phone: {hotel.phone}</p>
-                  <p>Email: {hotel.email}</p>
-                  <p>Overview: {hotel.overview}</p>
-                  <p>Price per night: {hotel.price_per_night}</p>
-                  <p>Available people count: {hotel.available_people_count}</p>
-                  <p>Available night count: {hotel.available_night_count}</p>
-                  <p>Room type: {hotel.room_type}</p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No hotels found.</p>
-          )}
+        <div className="search-by-nights">
+          <h2>Search Hotels by Available Nights</h2>
+          <input
+            type="number"
+            placeholder="Min Nights"
+            value={minNights}
+            onChange={(e) => setMinNights(e.target.value)}
+          />
+          <button onClick={() => handleButtonClick(fetchHotelsByAvailableNights)}>
+            {searchType === 'available_nights' ? 'Clear Results' : 'Search'}
+          </button>
         </div>
-      )}
+
+        <div className="search-by-people">
+          <h2>Search Hotels by Available People Count</h2>
+          <input
+            type="number"
+            placeholder="Min People"
+            value={minPeople}
+            onChange={(e) => setMinPeople(e.target.value)}
+          />
+          <button onClick={() => handleButtonClick(fetchHotelsByAvailablePeopleCount)}>
+            {searchType === 'available_people_count' ? 'Clear Results' : 'Search'}
+          </button>
+        </div>
+
+        <div className="search-by-price">
+          <h2>Search Hotels by Price Range</h2>
+          <input
+            type="number"
+            placeholder="Min Price"
+            value={priceMin}
+            onChange={(e) => setPriceMin(e.target.value)}
+          />
+          <input
+            type="number"
+            placeholder="Max Price"
+            value={priceMax}
+            onChange={(e) => setPriceMax(e.target.value)}
+          />
+          <button onClick={() => handleButtonClick(fetchHotelsByPriceRange)}>
+            {searchType === 'price_range' ? 'Clear Results' : 'Search'}
+          </button>
+        </div>
+
+        <div className="combined-search">
+          <h2>Combined Search</h2>
+          <input
+            type="number"
+            placeholder="Min Price"
+            value={minPrice}
+            onChange={(e) => setMinPrice(e.target.value)}
+          />
+          <input
+            type="number"
+            placeholder="Max Price"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+          />
+          <input
+            type="number"
+            placeholder="Min Nights"
+            value={nightsMin}
+            onChange={(e) => setNightsMin(e.target.value)}
+          />
+          <input
+            type="number"
+            placeholder="Min People"
+            value={peopleMin}
+            onChange={(e) => setPeopleMin(e.target.value)}
+          />
+          <button onClick={() => handleButtonClick(fetchHotelsByCombinedSearch)}>
+            {searchType === 'combined_search' ? 'Clear Results' : 'Search'}
+          </button>
+        </div>
+      </div>
+
+      <div className="hotel-results">
+        <h2>Hotel Results</h2>
+        {hotels.map((hotel, index) => (
+          <div key={index} className="hotel">
+            <h3>{hotel.name}</h3>
+            <p>{hotel.address}</p>
+            <p>{hotel.phone}</p>
+            <p>{hotel.email}</p>
+            <p>{hotel.overview}</p>
+            <p>{hotel.description}</p>
+            <p>{hotel.amenities}</p>
+            <p>{hotel.policies}</p>
+            <p>Latitude: {hotel.latitude}</p>
+            <p>Longitude: {hotel.longitude}</p>
+            <p>Available Night Count: {hotel.available_night_count}</p>
+            <p>Available People Count: {hotel.available_people_count}</p>
+            <p>
+              Price per Night: ${isUserLoggedIn ? applyDiscount(hotel.price_per_night) : hotel.price_per_night}
+            </p>
+            <p>Room Type: {hotel.room_type}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
