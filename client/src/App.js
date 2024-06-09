@@ -40,6 +40,12 @@ const App = () => {
     new_people_count: ''
   });
   const [deleteHotelName, setDeleteHotelName] = useState('');
+  const [selectedHotelDetails, setSelectedHotelDetails] = useState({});
+  const [bookingData, setBookingData] = useState({
+    hotel_name: '',
+    night_count: '',
+    people_count: ''
+  });
 
   const fetchHotelsByAvailableNights = async () => {
     try {
@@ -175,6 +181,35 @@ const App = () => {
     return price - price * 0.1;
   };
 
+  const handleShowDetails = async (hotelName) => {
+    try {
+      const response = await axios.get('/api/hotels/details', {
+        params: { hotel_name: hotelName },
+      });
+      setSelectedHotelDetails((prevState) => ({
+        ...prevState,
+        [hotelName]: response.data
+      }));
+    } catch (error) {
+      console.error('Error fetching hotel details', error);
+    }
+  };
+
+  const handleBookHotel = async (e, hotelName) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post('/api/hotels/book_hotel', {
+        hotel_name: hotelName,
+        night_count: bookingData.night_count,
+        people_count: bookingData.people_count,
+      });
+      console.log(response.data);
+      alert(`Booked hotel: ${hotelName}`);
+    } catch (error) {
+      console.error('Error booking hotel', error);
+    }
+  };
+
   return (
     <div className="App">
       <h1>Hotel Search</h1>
@@ -189,7 +224,7 @@ const App = () => {
             onChange={(e) => setUserLoginData({ ...userLoginData, username: e.target.value })}
           />
           <input
-            type="text"
+            type="password"
             placeholder="Password"
             value={userLoginData.password}
             onChange={(e) => setUserLoginData({ ...userLoginData, password: e.target.value })}
@@ -265,20 +300,17 @@ const App = () => {
               value={hotelData.longitude}
               onChange={(e) => setHotelData({ ...hotelData, longitude: e.target.value })}
             />
-            <input
-              type="text"
+            <textarea
               placeholder="Description"
               value={hotelData.description}
               onChange={(e) => setHotelData({ ...hotelData, description: e.target.value })}
             />
-            <input
-              type="text"
+            <textarea
               placeholder="Amenities"
               value={hotelData.amenities}
               onChange={(e) => setHotelData({ ...hotelData, amenities: e.target.value })}
             />
-            <input
-              type="text"
+            <textarea
               placeholder="Policies"
               value={hotelData.policies}
               onChange={(e) => setHotelData({ ...hotelData, policies: e.target.value })}
@@ -297,7 +329,7 @@ const App = () => {
             />
             <input
               type="number"
-              placeholder="Price per Night"
+              placeholder="Price Per Night"
               value={hotelData.price_per_night}
               onChange={(e) => setHotelData({ ...hotelData, price_per_night: e.target.value })}
             />
@@ -309,7 +341,6 @@ const App = () => {
             />
             <button onClick={handleInsertHotel}>Insert Hotel</button>
           </div>
-
           <div className="update-section">
             <h2>Update Hotel</h2>
             <input
@@ -332,7 +363,6 @@ const App = () => {
             />
             <button onClick={handleUpdateHotel}>Update Hotel</button>
           </div>
-
           <div className="delete-section">
             <h2>Delete Hotel</h2>
             <input
@@ -347,105 +377,116 @@ const App = () => {
       )}
 
       <div className="search-section">
-        <div className="search-by-nights">
-          <h2>Search Hotels by Available Nights</h2>
-          <input
-            type="number"
-            placeholder="Min Nights"
-            value={minNights}
-            onChange={(e) => setMinNights(e.target.value)}
-          />
-          <button onClick={() => handleButtonClick(fetchHotelsByAvailableNights)}>
-            {searchType === 'available_nights' ? 'Clear Results' : 'Search'}
-          </button>
-        </div>
-
-        <div className="search-by-people">
-          <h2>Search Hotels by Available People Count</h2>
-          <input
-            type="number"
-            placeholder="Min People"
-            value={minPeople}
-            onChange={(e) => setMinPeople(e.target.value)}
-          />
-          <button onClick={() => handleButtonClick(fetchHotelsByAvailablePeopleCount)}>
-            {searchType === 'available_people_count' ? 'Clear Results' : 'Search'}
-          </button>
-        </div>
-
-        <div className="search-by-price">
-          <h2>Search Hotels by Price Range</h2>
-          <input
-            type="number"
-            placeholder="Min Price"
-            value={priceMin}
-            onChange={(e) => setPriceMin(e.target.value)}
-          />
-          <input
-            type="number"
-            placeholder="Max Price"
-            value={priceMax}
-            onChange={(e) => setPriceMax(e.target.value)}
-          />
-          <button onClick={() => handleButtonClick(fetchHotelsByPriceRange)}>
-            {searchType === 'price_range' ? 'Clear Results' : 'Search'}
-          </button>
-        </div>
-
-        <div className="combined-search">
-          <h2>Combined Search</h2>
-          <input
-            type="number"
-            placeholder="Min Price"
-            value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)}
-          />
-          <input
-            type="number"
-            placeholder="Max Price"
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
-          />
-          <input
-            type="number"
-            placeholder="Min Nights"
-            value={nightsMin}
-            onChange={(e) => setNightsMin(e.target.value)}
-          />
-          <input
-            type="number"
-            placeholder="Min People"
-            value={peopleMin}
-            onChange={(e) => setPeopleMin(e.target.value)}
-          />
-          <button onClick={() => handleButtonClick(fetchHotelsByCombinedSearch)}>
-            {searchType === 'combined_search' ? 'Clear Results' : 'Search'}
-          </button>
+        <h2>Search Hotels</h2>
+        <div className="search-options">
+          <div className="search-option">
+            <h3>Search by Available Nights</h3>
+            <input
+              type="number"
+              placeholder="Min Nights"
+              value={minNights}
+              onChange={(e) => setMinNights(e.target.value)}
+            />
+            <button onClick={() => handleButtonClick(fetchHotelsByAvailableNights)}>Search</button>
+          </div>
+          <div className="search-option">
+            <h3>Search by Available People Count</h3>
+            <input
+              type="number"
+              placeholder="Min People"
+              value={minPeople}
+              onChange={(e) => setMinPeople(e.target.value)}
+            />
+            <button onClick={() => handleButtonClick(fetchHotelsByAvailablePeopleCount)}>Search</button>
+          </div>
+          <div className="search-option">
+            <h3>Search by Price Range</h3>
+            <input
+              type="number"
+              placeholder="Min Price"
+              value={priceMin}
+              onChange={(e) => setPriceMin(e.target.value)}
+            />
+            <input
+              type="number"
+              placeholder="Max Price"
+              value={priceMax}
+              onChange={(e) => setPriceMax(e.target.value)}
+            />
+            <button onClick={() => handleButtonClick(fetchHotelsByPriceRange)}>Search</button>
+          </div>
+          <div className="search-option">
+            <h3>Combined Search</h3>
+            <input
+              type="number"
+              placeholder="Min Price"
+              value={minPrice}
+              onChange={(e) => setMinPrice(e.target.value)}
+            />
+            <input
+              type="number"
+              placeholder="Max Price"
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+            />
+            <input
+              type="number"
+              placeholder="Min Nights"
+              value={nightsMin}
+              onChange={(e) => setNightsMin(e.target.value)}
+            />
+            <input
+              type="number"
+              placeholder="Min People"
+              value={peopleMin}
+              onChange={(e) => setPeopleMin(e.target.value)}
+            />
+            <button onClick={() => handleButtonClick(fetchHotelsByCombinedSearch)}>Search</button>
+          </div>
         </div>
       </div>
 
-      <div className="hotel-results">
-        <h2>Hotel Results</h2>
-        {hotels.map((hotel, index) => (
-          <div key={index} className="hotel">
-            <h3>{hotel.name}</h3>
-            <p>{hotel.address}</p>
-            <p>{hotel.phone}</p>
-            <p>{hotel.email}</p>
-            <p>{hotel.overview}</p>
-            <p>{hotel.description}</p>
-            <p>{hotel.amenities}</p>
-            <p>{hotel.policies}</p>
-            <p>Latitude: {hotel.latitude}</p>
-            <p>Longitude: {hotel.longitude}</p>
-            <p>Available Night Count: {hotel.available_night_count}</p>
-            <p>Available People Count: {hotel.available_people_count}</p>
-            <p>
-              Price per Night: ${isUserLoggedIn ? applyDiscount(hotel.price_per_night) : hotel.price_per_night}
-            </p>
-            <p>Room Type: {hotel.room_type}</p>
-          </div>
-        ))}
+      <div className="results-section">
+        <h2>Search Results</h2>
+        <ul>
+          {hotels.map((hotel) => (
+            <li key={hotel.id}>
+              <div className="hotel-summary">
+                <p>Name: {hotel.name}</p>
+                <p>Price: {hotel.price_per_night}</p>
+                <p>Available Night Count: {hotel.available_night_count}</p>
+                <p>Available People Count: {hotel.available_people_count}</p>
+              </div>
+              <button onClick={() => handleShowDetails(hotel.name)}>Show Details</button>
+              {selectedHotelDetails[hotel.name] && (
+                <div className="hotel-details">
+                  <p>Address: {selectedHotelDetails[hotel.name].address}</p>
+                  <p>Phone: {selectedHotelDetails[hotel.name].phone}</p>
+                  <p>Email: {selectedHotelDetails[hotel.name].email}</p>
+                  <p>Overview: {selectedHotelDetails[hotel.name].overview}</p>
+                  <p>Description: {selectedHotelDetails[hotel.name].description}</p>
+                  <p>Amenities: {selectedHotelDetails[hotel.name].amenities}</p>
+                  <p>Policies: {selectedHotelDetails[hotel.name].policies}</p>
+                  <form onSubmit={(e) => handleBookHotel(e, hotel.name)}>
+                    <input
+                      type="number"
+                      placeholder="Night Count"
+                      value={bookingData.night_count}
+                      onChange={(e) => setBookingData({ ...bookingData, night_count: e.target.value })}
+                    />
+                    <input
+                      type="number"
+                      placeholder="People Count"
+                      value={bookingData.people_count}
+                      onChange={(e) => setBookingData({ ...bookingData, people_count: e.target.value })}
+                    />
+                    <button type="submit">Book Hotel</button>
+                  </form>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

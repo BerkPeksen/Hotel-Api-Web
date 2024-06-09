@@ -253,10 +253,14 @@ def get_hotel_details_by_name():
 
     with connection.cursor() as cursor:
         query = """
-        SELECT h.name, h.address, hc.latitude, hc.longitude, hd.description, hd.amenities, hd.policies
+        SELECT h.name, h.address, h.phone, h.email, h.overview, 
+               hc.latitude, hc.longitude, 
+               hd.description, hd.amenities, hd.policies,
+               ha.available_night_count, ha.available_people_count, ha.price_per_night
         FROM Hotels h
         JOIN HotelCoordinates hc ON h.hotel_id = hc.hotel_id
         JOIN HotelDetails hd ON h.hotel_id = hd.hotel_id
+        JOIN RoomAvailability ha ON h.hotel_id = ha.hotel_id
         WHERE h.name = %s
         """
         cursor.execute(query, (hotel_name,))
@@ -268,11 +272,17 @@ def get_hotel_details_by_name():
     hotel_details = {
         'name': result[0],
         'address': result[1],
-        'latitude': float(result[2]),  # Convert to float
-        'longitude': float(result[3]),  # Convert to float
-        'description': result[4],
-        'amenities': result[5],
-        'policies': result[6]
+        'phone': result[2],
+        'email': result[3],
+        'overview': result[4],
+        'latitude': float(result[5]),  # Convert to float
+        'longitude': float(result[6]),  # Convert to float
+        'description': result[7],
+        'amenities': result[8],
+        'policies': result[9],
+        'available_night_count': result[10],
+        'available_people_count': result[11],
+        'price_per_night': result[12]
     }
 
     return jsonify(hotel_details)
