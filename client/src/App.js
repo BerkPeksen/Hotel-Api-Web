@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import './App.css';
+import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import Map from "./components/Map"
 
 const App = () => {
   const [hotels, setHotels] = useState([]);
@@ -18,6 +20,7 @@ const App = () => {
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
   const [adminLoginData, setAdminLoginData] = useState({ username: '', password: '' });
   const [userLoginData, setUserLoginData] = useState({ username: '', password: '' });
+  const [selectedHotelCoordinates, setSelectedHotelCoordinates] = useState(null);
   const [hotelData, setHotelData] = useState({
     name: '',
     address: '',
@@ -60,6 +63,22 @@ const App = () => {
       console.error('Error fetching hotels by available nights', error);
     }
   };
+
+  const fetchHotelCoordinates = async (hotelName) => {
+    try {
+      const response = await axios.get('/api/hotels/coordinates', {
+        params: { hotel_name: hotelName },
+      });
+      setSelectedHotelCoordinates(response.data);
+    } catch (error) {
+      console.error('Error fetching hotel coordinates', error);
+    }
+  };
+
+  const { isLoaded } = useJsApiLoader({
+    id: 'AIzaSyDWiTTHnV_tbM1ijQVPbTIKn4vWwOkU9SI',
+    googleMapsApiKey: "AIzaSyDWiTTHnV_tbM1ijQVPbTIKn4vWwOkU9SI"
+  })
 
   const fetchHotelsByAvailablePeopleCount = async () => {
     try {
@@ -444,6 +463,11 @@ const App = () => {
             <button onClick={() => handleButtonClick(fetchHotelsByCombinedSearch)}>Search</button>
           </div>
         </div>
+      </div>
+
+      <div className='Map'>
+        <h1>React Googlemaps api</h1>
+        <Map isLoaded={isLoaded}/>
       </div>
 
       <div className="results-section">
