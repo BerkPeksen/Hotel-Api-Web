@@ -3,12 +3,16 @@ import psycopg2
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request, render_template
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-
+import pika
+import json
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config['JWT_SECRET_KEY'] = 'your_secret_key'
+rabbitconnection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+rabbitchannel = rabbitconnection.channel()
+rabbitchannel.queue_declare(queue='hotel_bookings')
 
 jwt = JWTManager(app)
 url = os.getenv("DATABASE_URL")
@@ -413,22 +417,31 @@ def upgrade_room():
 
 @app.route('/api/hotels/book_hotel', methods=['PUT'])
 def book_hotel():
-    hotel_name = request.json.get('hotel_name')
-    night_count = request.json.get('night_count')
-    people_count = request.json.get('people_count')
+    hotel_name = request.args.get('hotel_name')
+    night_count = int(request.args.get('night_count'))
+    people_count = int(request.args.get('people_count'))
 
     if not hotel_name or night_count is None or people_count is None:
         return jsonify({'error': 'Please provide hotel_name, night_count, and people_count'}), 400
 
     with connection.cursor() as cursor:
         # Get the hotel_id for the given hotel_name
-        cursor.execute("SELECT hotel_id, available_night_count, available_people_count FROM Hotels WHERE name = %s", (hotel_name,))
+        cursor.execute("SELECT hotel_id FROM Hotels WHERE name = %s", (hotel_name,))
         result = cursor.fetchone()
 
         if result is None:
             return jsonify({'error': 'Hotel not found'}), 404
 
-        hotel_id, available_night_count, available_people_count = result
+        hotel_id = result[0]
+
+        # Get available night and people count from RoomAvailability
+        cursor.execute("SELECT available_night_count, available_people_count FROM RoomAvailability WHERE hotel_id = %s", (hotel_id,))
+        availability_result = cursor.fetchone()
+
+        if availability_result is None:
+            return jsonify({'error': 'Availability not found for the hotel'}), 404
+
+        available_night_count, available_people_count = availability_result
 
         if night_count > available_night_count or people_count > available_people_count:
             return jsonify({'error': 'Not enough available nights or people count'}), 400
@@ -441,8 +454,18 @@ def book_hotel():
         """, (night_count, people_count, hotel_id))
 
     connection.commit()
+        
+    rabbitmessage = {
+        'hotel_name': hotel_name,
+        'night_count': night_count,
+        'people_count': people_count,
+        'hotel_id': hotel_id  # You may need to include hotel_id if it's needed for further processing
+    }
+
+    rabbitchannel.basic_publish(exchange='', routing_key='hotel_bookings', body=json.dumps(rabbitmessage))
 
     return jsonify({'message': 'Hotel booked successfully'}), 200
+
 
 
 if __name__ == '__main__':

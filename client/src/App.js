@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import './App.css';
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 import Map from "./components/Map"
 
 const App = () => {
@@ -21,6 +21,8 @@ const App = () => {
   const [adminLoginData, setAdminLoginData] = useState({ username: '', password: '' });
   const [userLoginData, setUserLoginData] = useState({ username: '', password: '' });
   const [selectedHotelCoordinates, setSelectedHotelCoordinates] = useState(null);
+  const [selectedHotel, setSelectedHotel] = useState('');
+  const [mapCenter, setMapCenter] = useState({ lat: 36, lng: 45 });
   const [hotelData, setHotelData] = useState({
     name: '',
     address: '',
@@ -50,6 +52,24 @@ const App = () => {
     people_count: ''
   });
 
+  const Map = ({ center }) => {
+    const containerStyle = {
+        width: '400px',
+        height: '400px'
+    };
+
+    return (
+        <GoogleMap
+            mapContainerStyle={containerStyle}
+            center={center}
+            zoom={1}
+        >
+            { /* Child components, such as markers, info windows, etc. */ }
+            <></>
+        </GoogleMap>
+    );
+  };
+ 
   const fetchHotelsByAvailableNights = async () => {
     try {
       const response = await axios.get(`/api/hotels/available_nights`, {
@@ -75,6 +95,22 @@ const App = () => {
     }
   };
 
+  const handleShowLocation = async () => {
+    try {
+        const response = await axios.get(`/api/hotels/coordinates?hotel_name=${selectedHotel}`);
+        const data = response.data;
+        if (data.latitude && data.longitude) {
+            setMapCenter({ lat: data.latitude, lng: data.longitude });
+        } else {
+            alert('Coordinates not found for the selected hotel');
+        }
+    } catch (error) {
+        console.error('Error fetching coordinates:', error);
+        alert('Error fetching coordinates');
+    }
+};
+
+
   const { isLoaded } = useJsApiLoader({
     id: 'AIzaSyDWiTTHnV_tbM1ijQVPbTIKn4vWwOkU9SI',
     googleMapsApiKey: "AIzaSyDWiTTHnV_tbM1ijQVPbTIKn4vWwOkU9SI"
@@ -84,7 +120,7 @@ const App = () => {
     try {
       const response = await axios.get(`/api/hotels/available_people_count`, {
         params: {
-          min_people: minPeople,
+          min_people_count: minPeople,
         },
       });
       setHotels(response.data);
@@ -217,17 +253,13 @@ const App = () => {
   const handleBookHotel = async (e, hotelName) => {
     e.preventDefault();
     try {
-      const response = await axios.post('/api/hotels/book_hotel', {
-        hotel_name: hotelName,
-        night_count: bookingData.night_count,
-        people_count: bookingData.people_count,
-      });
+      const response = await axios.put(`/api/hotels/book_hotel?hotel_name=${hotelName}&night_count=${bookingData.night_count}&people_count=${bookingData.people_count}`);
       console.log(response.data);
       alert(`Booked hotel: ${hotelName}`);
     } catch (error) {
       console.error('Error booking hotel', error);
     }
-  };
+};
 
   return (
     <div className="App">
@@ -406,7 +438,7 @@ const App = () => {
               value={minNights}
               onChange={(e) => setMinNights(e.target.value)}
             />
-            <button onClick={() => handleButtonClick(fetchHotelsByAvailableNights)}>Search</button>
+            <button onClick={() => handleButtonClick(fetchHotelsByAvailableNights)}>Search/Hide</button>
           </div>
           <div className="search-option">
             <h3>Search by Available People Count</h3>
@@ -416,7 +448,7 @@ const App = () => {
               value={minPeople}
               onChange={(e) => setMinPeople(e.target.value)}
             />
-            <button onClick={() => handleButtonClick(fetchHotelsByAvailablePeopleCount)}>Search</button>
+            <button onClick={() => handleButtonClick(fetchHotelsByAvailablePeopleCount)}>Search/Hide</button>
           </div>
           <div className="search-option">
             <h3>Search by Price Range</h3>
@@ -432,7 +464,7 @@ const App = () => {
               value={priceMax}
               onChange={(e) => setPriceMax(e.target.value)}
             />
-            <button onClick={() => handleButtonClick(fetchHotelsByPriceRange)}>Search</button>
+            <button onClick={() => handleButtonClick(fetchHotelsByPriceRange)}>Search/Hide</button>
           </div>
           <div className="search-option">
             <h3>Combined Search</h3>
@@ -460,15 +492,29 @@ const App = () => {
               value={peopleMin}
               onChange={(e) => setPeopleMin(e.target.value)}
             />
-            <button onClick={() => handleButtonClick(fetchHotelsByCombinedSearch)}>Search</button>
+            <button onClick={() => handleButtonClick(fetchHotelsByCombinedSearch)}>Search/Hide</button>
           </div>
         </div>
       </div>
 
+      
+
       <div className='Map'>
-        <h1>React Googlemaps api</h1>
-        <Map isLoaded={isLoaded}/>
+        <div>
+        <h1>Hotel Map</h1>
+        <input
+            type="text"
+            placeholder="Enter hotel name"
+            value={selectedHotel}
+            onChange={(e) => setSelectedHotel(e.target.value)}
+        />
+        <button onClick={handleShowLocation} disabled={!isLoaded}>Show Location</button>
+        { <Map isLoaded = {isLoaded}/> && <Map center={mapCenter} />}
       </div>
+
+      </div>
+
+      
 
       <div className="results-section">
         <h2>Search Results</h2>
@@ -477,7 +523,7 @@ const App = () => {
             <li key={hotel.id}>
               <div className="hotel-summary">
                 <p>Name: {hotel.name}</p>
-                <p>Price: {hotel.price_per_night}</p>
+                <p>Price: {isUserLoggedIn ? applyDiscount(hotel.price_per_night) : hotel.price_per_night}</p>
                 <p>Available Night Count: {hotel.available_night_count}</p>
                 <p>Available People Count: {hotel.available_people_count}</p>
               </div>
@@ -512,7 +558,7 @@ const App = () => {
           ))}
         </ul>
       </div>
-    </div>
+   </div>
   );
 };
 
