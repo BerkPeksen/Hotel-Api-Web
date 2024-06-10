@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/react-hotel-api/static/css/main.e0418c90.css",
-    "main.js": "/react-hotel-api/static/js/main.eaeffb90.js",
-    "static/js/453.419a5d54.chunk.js": "/react-hotel-api/static/js/453.419a5d54.chunk.js",
-    "index.html": "/react-hotel-api/index.html",
-    "main.e0418c90.css.map": "/react-hotel-api/static/css/main.e0418c90.css.map",
-    "main.eaeffb90.js.map": "/react-hotel-api/static/js/main.eaeffb90.js.map",
-    "453.419a5d54.chunk.js.map": "/react-hotel-api/static/js/453.419a5d54.chunk.js.map"
+    "main.css": "/Hotel-Api-Web/static/css/main.e0418c90.css",
+    "main.js": "/Hotel-Api-Web/static/js/main.230d7df7.js",
+    "static/js/453.419a5d54.chunk.js": "/Hotel-Api-Web/static/js/453.419a5d54.chunk.js",
+    "index.html": "/Hotel-Api-Web/index.html",
+    "main.e0418c90.css.map": "/Hotel-Api-Web/static/css/main.e0418c90.css.map",
+    "main.230d7df7.js.map": "/Hotel-Api-Web/static/js/main.230d7df7.js.map",
+    "453.419a5d54.chunk.js.map": "/Hotel-Api-Web/static/js/453.419a5d54.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.e0418c90.css",
-    "static/js/main.eaeffb90.js"
+    "static/js/main.230d7df7.js"
   ]
 }
