@@ -15,7 +15,7 @@ rabbitchannel = rabbitconnection.channel()
 rabbitchannel.queue_declare(queue='hotel_bookings')
 
 jwt = JWTManager(app)
-url = os.getenv("DATABASE_URL")
+url = "postgres://lekjueer:SKjAbK_bGwYJXMqT1U4fbiIbZ3_q0gEh@flora.db.elephantsql.com/lekjueer"
 connection = psycopg2.connect(url)
 
 
