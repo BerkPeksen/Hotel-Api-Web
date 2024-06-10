@@ -119,6 +119,7 @@ The data model for the project is as follows:
 ## Deployment Links
   - Frontend: https://66669fdbe3de4203e24b2e30--sparkly-meerkat-1f9169.netlify.app/
   - Backend: https://hotelapitesting.azurewebsites.net/
+  - Docker Image: https://hub.docker.com/repository/docker/berkpksn/hotelapi/general
 
 ## Video
 Youtube:
